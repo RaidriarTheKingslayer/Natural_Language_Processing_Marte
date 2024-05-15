@@ -11,7 +11,17 @@ import language_tool_python.utils
 
 
 df = pd.read_csv("youtube_comments20.csv", sep=';')
+
 df.drop_duplicates(inplace=True)
+
+
+tool = language_tool_python.LanguageTool('en-US')
+
+# Function to correct text
+def correct_text(text):
+    matches = tool.check(text)
+    return language_tool_python.utils.correct(text, matches)
+
 def get_wordnet_pos(treebank_tag):
     if treebank_tag.startswith('J'):
         return 'a'  # adjective
@@ -29,6 +39,7 @@ def clean_text(text):
         return ""  # Return empty string for NaN values
     
     text = re.sub(r'&#39', "", text)
+    text = re.sub(r'&#39;s', " is", text)
     text = re.sub(r'Ã¡', "a", text)
     text = re.sub(r'\bs.\b', '.', text)
     text = re.sub(r'\bs\b', '', text)
@@ -69,6 +80,8 @@ def clean_text(text):
     }
     for pattern, replacement in replacements.items():
         text = text.replace(pattern, replacement)
+
+    text = correct_text(text)
 
     abbreviations = {
     "imo": "in my opinion",
@@ -953,8 +966,11 @@ def correct_text(text):
     return language_tool_python.utils.correct(text, matches)
 
 df["CleanedText"] = df["text"].apply(clean_text)
-df["CleanedText"] = df['CleanedText'].apply(correct_text)
+df["ProcessText"] = df["text"].apply(process_text)
+#df["CleanedText"] = df['CleanedText'].apply(correct_text)
 
 df = df.dropna(subset=["CleanedText"])
+    
+df['ActualLabel'] = ""
 
 df.to_csv("./CleanedCommentsV2/cleaned_youtube_comments20.csv", index=False, sep=';')
